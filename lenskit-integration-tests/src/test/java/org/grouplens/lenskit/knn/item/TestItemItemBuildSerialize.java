@@ -33,8 +33,12 @@ import org.grouplens.lenskit.core.LenskitConfiguration;
 import org.grouplens.lenskit.core.LenskitRecommender;
 import org.grouplens.lenskit.core.LenskitRecommenderEngine;
 import org.grouplens.lenskit.data.dao.EventDAO;
+import org.grouplens.lenskit.data.dao.PrefetchingUserEventDAO;
+import org.grouplens.lenskit.data.dao.UserEventDAO;
+import org.grouplens.lenskit.data.dao.audit.Audited;
+import org.grouplens.lenskit.data.dao.audit.AuditingEventDAO;
+import org.grouplens.lenskit.data.dao.audit.AuditingUserEventDAO;
 import org.grouplens.lenskit.knn.item.model.ItemItemModel;
-import org.grouplens.lenskit.symbols.TypedSymbol;
 import org.grouplens.lenskit.test.ML100KTestSuite;
 import org.grouplens.lenskit.transform.normalize.BaselineSubtractingUserVectorNormalizer;
 import org.grouplens.lenskit.transform.normalize.UserVectorNormalizer;
@@ -60,7 +64,11 @@ public class TestItemItemBuildSerialize extends ML100KTestSuite {
     @Test
     public void testBuildAndSerializeModel() throws RecommenderBuildException, IOException {
         LenskitConfiguration config = new LenskitConfiguration();
-        config.bind(EventDAO.class).to(dao);
+        config.bind(Audited.class, EventDAO.class).to(dao);
+        config.bind(EventDAO.class).to(AuditingEventDAO.class);
+        config.bind(Audited.class, UserEventDAO.class).to(PrefetchingUserEventDAO.class);
+        config.bind(UserEventDAO.class).to(AuditingUserEventDAO.class);
+
         config.bind(ItemRecommender.class)
               .to(TopNItemRecommender.class);
         config.bind(ItemScorer.class)
