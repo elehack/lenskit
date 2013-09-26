@@ -47,21 +47,24 @@ public class AuditingEventDAO implements EventDAO {
     @Override
     public Cursor<Event> streamEvents() {
         String name = String.format("events[%d]", controller.freshId());
-        logger.debug("opening cursor {}", name);
-        return AuditedCursor.wrap(logger, name, delegate.streamEvents());
+        Cursor<Event> base = delegate.streamEvents();
+        logger.debug("opened cursor {}", name);
+        return AuditedCursor.wrap(logger, name, base);
     }
 
     @Override
     public <E extends Event> Cursor<E> streamEvents(Class<E> type) {
         String name = String.format("events(%s)[%d]", type, controller.freshId());
-        logger.debug("opening cursor {}", name);
-        return AuditedCursor.wrap(logger, name, delegate.streamEvents(type));
+        Cursor<E> base = delegate.streamEvents(type);
+        logger.debug("opened cursor {}", name);
+        return AuditedCursor.wrap(logger, name, base);
     }
 
     @Override
     public <E extends Event> Cursor<E> streamEvents(Class<E> type, SortOrder order) {
         String name = String.format("events(%s,%s)[%d]", type, order, controller.freshId());
-        logger.debug("opening cursor {}", name);
-        return AuditedCursor.wrap(logger, name, delegate.streamEvents(type, order));
+        Cursor<E> base = delegate.streamEvents(type, order);
+        logger.debug("opened cursor {}", name);
+        return AuditedCursor.wrap(logger, name, base);
     }
 }

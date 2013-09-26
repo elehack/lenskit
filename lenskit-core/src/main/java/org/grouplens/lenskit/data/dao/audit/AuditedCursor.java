@@ -82,8 +82,11 @@ public class AuditedCursor<E> implements Cursor<E> {
 
     @Override
     public void close() {
-        logger.debug("closing cursor {}", name);
-        cursor.close();
+        try {
+            cursor.close();
+        } finally {
+            logger.debug("closed cursor {}", name);
+        }
     }
 
     @Override

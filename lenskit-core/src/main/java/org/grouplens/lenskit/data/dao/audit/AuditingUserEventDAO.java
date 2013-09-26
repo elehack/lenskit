@@ -50,8 +50,9 @@ public class AuditingUserEventDAO implements UserEventDAO {
     @Override
     public Cursor<UserHistory<Event>> streamEventsByUser() {
         String name = String.format("userProfiles[%d]", controller.freshId());
-        logger.debug("opening cursor {}", name);
-        return AuditedCursor.wrap(logger, name, delegate.streamEventsByUser());
+        Cursor<UserHistory<Event>> base = delegate.streamEventsByUser();
+        logger.debug("opened cursor {}", name);
+        return AuditedCursor.wrap(logger, name, base);
     }
 
     @Override
