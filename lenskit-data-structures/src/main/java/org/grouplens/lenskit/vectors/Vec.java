@@ -20,6 +20,7 @@
  */
 package org.grouplens.lenskit.vectors;
 
+import com.github.fommil.netlib.BLAS;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -97,12 +98,7 @@ public abstract class Vec implements Serializable {
      * @return The Euclidean length of the vector.
      */
     public double norm() {
-        double ssq = 0;
-        for (int i = offset; i < dataBound; i += stride) {
-            double v = data[i];
-            ssq += v * v;
-        }
-        return sqrt(ssq);
+        return BLAS.getInstance().dnrm2(size, data, offset, stride);
     }
 
     /**
@@ -137,13 +133,8 @@ public abstract class Vec implements Serializable {
      */
     public final double dot(Vec other) {
         Preconditions.checkArgument(size == other.size(), "incompatible vector dimensions");
-        double s = 0;
-        for (int i = offset, j = other.offset; i < dataBound;
-             i += stride, j += other.stride) {
-            assert j < other.dataBound;
-            s += data[i] * other.data[j];
-        }
-        return s;
+        return BLAS.getInstance().ddot(size, data, offset, stride,
+                                       other.data, other.offset, other.stride);
     }
 
     /**

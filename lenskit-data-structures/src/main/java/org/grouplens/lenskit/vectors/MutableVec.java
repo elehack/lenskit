@@ -20,6 +20,7 @@
  */
 package org.grouplens.lenskit.vectors;
 
+import com.github.fommil.netlib.BLAS;
 import com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
@@ -131,11 +132,8 @@ public final class MutableVec extends Vec {
         if (stride == 1 && v.stride == 1) {
             System.arraycopy(v.data, v.offset, data, offset, size);
         } else {
-            for (int i = offset, j = v.offset; i < dataBound;
-                 i += stride, j += v.stride) {
-                assert j < v.dataBound;
-                data[i] = v.data[j];
-            }
+            BLAS.getInstance().dcopy(size, v.data, v.offset, v.stride,
+                                     data, offset, stride);
         }
     }
 
@@ -156,11 +154,8 @@ public final class MutableVec extends Vec {
     public void add(Vec v) {
         checkFrozen();
         Preconditions.checkArgument(v.size() == size(), "incompatible vector dimensions");
-        for (int i = offset, j = v.offset; i < dataBound;
-             i += stride, j += v.stride) {
-            assert j < v.dataBound;
-            data[i] += v.data[j];
-        }
+        BLAS.getInstance().daxpy(size, 1, v.data, v.offset, v.stride,
+                                 data, offset, stride);
     }
 
     /**
@@ -169,9 +164,7 @@ public final class MutableVec extends Vec {
      */
     public void scale(double s) {
         checkFrozen();
-        for (int i = offset; i < dataBound; i += stride) {
-            data[i] *= s;
-        }
+        BLAS.getInstance().dscal(size, s, data, offset, stride);
     }
 
     @Override
