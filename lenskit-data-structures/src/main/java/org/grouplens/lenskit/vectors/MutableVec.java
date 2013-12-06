@@ -81,15 +81,11 @@ public final class MutableVec extends Vec {
      * Set a value in this vector.
      * @param i The index.
      * @param v The value to set.
-     * @return The old value at {@code i}.
-     * @throws IllegalArgumentException if {@code i} is not a valid index in this vector.
+     * @throws IndexOutOfBoundsException if {@code i} is not a valid index in this vector.
      */
-    public double set(int i, double v) {
+    public void set(int i, double v) {
         checkFrozen();
-        int idx = arrayIndex(i);
-        final double old = data[idx];
-        data[idx] = v;
-        return old;
+        data[arrayIndex(i)] = v;
     }
 
     /**
@@ -98,14 +94,11 @@ public final class MutableVec extends Vec {
      * @param i The index.
      * @param v The value to set.
      * @return The old value at {@code i}.
-     * @throws IllegalArgumentException if {@code i} is not a valid index in this vector.
+     * @throws IndexOutOfBoundsException if {@code i} is not a valid index in this vector.
      */
-    public double add(int i, double v) {
+    public void add(int i, double v) {
         checkFrozen();
-        int idx = arrayIndex(i);
-        final double old = data[idx];
-        data[idx] = v + old;
-        return old;
+        data[arrayIndex(i)] += v;
     }
 
     /**

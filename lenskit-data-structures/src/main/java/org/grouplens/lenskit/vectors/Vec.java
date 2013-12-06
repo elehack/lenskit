@@ -68,7 +68,7 @@ public abstract class Vec implements Serializable {
      * @param i The index in the vector.
      * @return The index in the underlying array.
      */
-    int arrayIndex(int i) {
+    final int arrayIndex(int i) {
         Preconditions.checkElementIndex(i, size);
         return offset + i * stride;
     }

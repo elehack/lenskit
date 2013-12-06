@@ -115,8 +115,7 @@ public class VecTest {
         assertThat(mv.sum(), closeTo(9));
         assertThat(mv, allOf(equalTo(v1),
                              not(sameInstance(v1))));
-        double v = mv.set(1, 2);
-        assertThat(v, closeTo(3));
+        mv.set(1, 2);
         assertThat(mv, not(equalTo(v1)));
         assertThat(mv.get(1), closeTo(2));
         assertThat(mv.sum(), closeTo(8));
@@ -146,8 +145,7 @@ public class VecTest {
     @Test
     public void testAddValue() {
         MutableVec mv = v1.mutableCopy();
-        double ov = mv.add(1, 2);
-        assertThat(ov, closeTo(3));
+        mv.add(1, 2);
         assertThat(mv.get(1), closeTo(5));
     }
 
