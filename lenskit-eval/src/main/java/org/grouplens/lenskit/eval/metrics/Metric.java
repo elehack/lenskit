@@ -29,6 +29,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Base interface for metrics, which are used by evaluations to measure their results.  Metrics may
@@ -89,6 +90,14 @@ public interface Metric<X> extends Closeable {
      * @see #measureUser(TestUser, Object)
      */
     List<String> getUserColumnLabels();
+
+    /**
+     * If this metric requires any additional components (such as tag data), it should return them
+     * here.  All components returned will be added as roots to the algorithm configurations so
+     * that they are available in the final recommender.
+     * @return A set of required components.
+     */
+    Set<Class<?>> getRequiredComponents();
 
     /**
      * Create the context for an experimental condition (algorithm/data set pair).

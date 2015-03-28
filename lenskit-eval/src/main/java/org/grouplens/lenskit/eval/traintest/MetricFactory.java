@@ -23,7 +23,9 @@ package org.grouplens.lenskit.eval.traintest;
 import org.grouplens.lenskit.eval.metrics.Metric;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Create a metric for a train-test evaluation.  This interface allows a metric to control
@@ -38,6 +40,16 @@ public abstract class MetricFactory<T> {
     public abstract List<String> getColumnLabels();
 
     public abstract List<String> getUserColumnLabels();
+
+    /**
+     * If this metric requires any additional components (such as tag data), it should return them
+     * here.  All components returned will be added as roots to the algorithm configurations so
+     * that they are available in the final recommender.
+     * @return A set of required components.
+     */
+    Set<Class<?>> getRequiredComponents() {
+        return Collections.emptySet();
+    }
 
     /**
      * Create a metric factory that returns the provided pre-instantiated metric.
@@ -68,6 +80,11 @@ public abstract class MetricFactory<T> {
         @Override
         public List<String> getUserColumnLabels() {
             return metric.getUserColumnLabels();
+        }
+
+        @Override
+        Set<Class<?>> getRequiredComponents() {
+            return metric.getRequiredComponents();
         }
     }
 }

@@ -20,7 +20,10 @@
  */
 package org.grouplens.lenskit.eval.traintest;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.List;
+import java.util.Set;
 
 /**
  * A suite of metrics for a train-test evaluaiton.
@@ -30,6 +33,7 @@ import java.util.List;
  */
 class MeasurementSuite {
     private final List<MetricFactory<?>> metricFactories;
+    private volatile Set<Class<?>> requiredComponents;
 
     /**
      * Create a new measurement suite.
@@ -41,5 +45,25 @@ class MeasurementSuite {
 
     public List<MetricFactory<?>> getMetricFactories() {
         return metricFactories;
+    }
+
+    private void cacheRequiredComponents() {
+        ImmutableSet.Builder<Class<?>> bld = ImmutableSet.builder();
+        for (MetricFactory<?> mf: metricFactories) {
+            bld.addAll(mf.getRequiredComponents());
+        }
+        requiredComponents = bld.build();
+    }
+
+    public Set<Class<?>> getRequiredComponents() {
+        if (requiredComponents == null) {
+            synchronized (this) {
+                if (requiredComponents == null) {
+                    cacheRequiredComponents();
+                }
+            }
+        }
+
+        return requiredComponents;
     }
 }

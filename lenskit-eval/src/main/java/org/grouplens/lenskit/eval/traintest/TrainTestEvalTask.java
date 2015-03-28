@@ -404,7 +404,7 @@ public class TrainTestEvalTask extends AbstractTask<Table> {
                 outputs = openExperimentOutputs(layout, measurements, resultsBuilder, closer);
                 DAGNode<JobGraph.Node,JobGraph.Edge> jobGraph;
                 try {
-                    jobGraph = makeJobGraph(experiments);
+                    jobGraph = makeJobGraph(experiments, measurements);
                 } catch (RecommenderConfigurationException ex) {
                     throw new TaskExecutionException("Recommender configuration error", ex);
                 }
@@ -503,7 +503,7 @@ public class TrainTestEvalTask extends AbstractTask<Table> {
         }
     }
 
-    DAGNode<JobGraph.Node,JobGraph.Edge> makeJobGraph(ExperimentSuite experiments) throws RecommenderConfigurationException {
+    DAGNode<JobGraph.Node,JobGraph.Edge> makeJobGraph(ExperimentSuite experiments, MeasurementSuite measurements) throws RecommenderConfigurationException {
         Multimap<UUID, TTDataSet> grouped = LinkedHashMultimap.create();
         for (TTDataSet dataset : experiments.getDataSets()) {
             UUID grp = dataset.getIsolationGroup();
@@ -522,7 +522,9 @@ public class TrainTestEvalTask extends AbstractTask<Table> {
             String groupName = dss.size() == 1 ? dss.iterator().next().getName() : groupId.toString();
             for (TTDataSet dataset: dss) {
                 // Add LensKit algorithms
-                addAlgorithmNodes(builder, dataset, experiments.getAlgorithms(), cache);
+                addAlgorithmNodes(builder, dataset, experiments.getAlgorithms(),
+                                  measurements.getRequiredComponents(),
+                                  cache);
 
                 // Add external algorithms
                 for (ExternalAlgorithm algo: experiments.getExternalAlgorithms()) {
@@ -537,6 +539,7 @@ public class TrainTestEvalTask extends AbstractTask<Table> {
 
     private void addAlgorithmNodes(JobGraphBuilder builder, TTDataSet dataset,
                                    List<AlgorithmInstance> algorithms,
+                                   Set<Class<?>> roots,
                                    ComponentCache cache) throws RecommenderConfigurationException {
         MergePool<Component,Dependency> pool = MergePool.create();
 
@@ -551,6 +554,10 @@ public class TrainTestEvalTask extends AbstractTask<Table> {
             dataset.configure(dataConfig);
             // we need the user event DAO in the test phase
             dataConfig.addRoot(UserEventDAO.class);
+            // and other roots
+            for (Class<?> root: roots) {
+                dataConfig.addRoot(root);
+            }
             // Build the graph
             DAGNode<Component, Dependency> graph = algo.buildRecommenderGraph(dataConfig);
 

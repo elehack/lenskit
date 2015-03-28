@@ -27,7 +27,9 @@ import org.grouplens.lenskit.eval.traintest.TestUser;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A simple metric base class that tracks the current evaluation.
@@ -76,6 +78,17 @@ public abstract class AbstractMetric<X, G, U> implements Metric<X> {
     @Override
     public List<String> getUserColumnLabels() {
         return Lists.transform(userConverter.getColumnLabels(), new HeaderTransform());
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * This implementation returns the empty set.
+     * </p>
+     */
+    @Override
+    public Set<Class<?>> getRequiredComponents() {
+        return Collections.emptySet();
     }
 
     @Nonnull
