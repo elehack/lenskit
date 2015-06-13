@@ -35,7 +35,12 @@
 
 import org.gradle.process.internal.ExecException
 
+plugins {
+    id 'me.champeau.gradle.jmh' version '0.2.0'
+}
+
 apply plugin: 'groovy'
+apply plugin: 'me.champeau.gradle.jmh'
 apply from: "$rootDir/gradle/test-utils.gradle"
 
 dependencies {
@@ -77,6 +82,12 @@ test {
         System.getenv("SONAR_BUILD") != 'true'
     }
 }
+
+jmh {
+    warmupIterations = 5
+    iterations = 10
+}
+tasks['jmh'].dependsOn fetchData
 
 // import code to run the integration tests
 apply from: 'gradle-tests.gradle'
