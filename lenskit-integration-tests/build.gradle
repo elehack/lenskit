@@ -86,8 +86,9 @@ test {
 }
 
 jmh {
-    warmupIterations = 5
-    iterations = 10
+    fork = 5
+    warmupIterations = 10
+    include = 'IdManagement'
 }
 tasks['jmh'].dependsOn fetchData
 

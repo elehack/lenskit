@@ -6,12 +6,14 @@ import org.grouplens.lenskit.data.event.Rating;
 import org.grouplens.lenskit.data.text.EventFormat;
 import org.grouplens.lenskit.data.text.Formats;
 import org.grouplens.lenskit.data.text.TextEventDAO;
-import org.grouplens.lenskit.util.DelimitedTextCursor;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
+import org.openjdk.jmh.annotations.Warmup;
 
 import java.io.File;
 
+@Warmup(iterations = 5)
+@Measurement(iterations = 10)
 public class ReadRatingCSV {
     static File ratingsFile = new File("build/ml-100k/u.data");
 
