@@ -1,11 +1,11 @@
 package org.lenskit.bench;
 
-import org.grouplens.lenskit.cursors.Cursor;
-import org.grouplens.lenskit.data.dao.EventDAO;
-import org.grouplens.lenskit.data.event.Rating;
 import org.grouplens.lenskit.data.text.EventFormat;
 import org.grouplens.lenskit.data.text.Formats;
 import org.grouplens.lenskit.data.text.TextEventDAO;
+import org.lenskit.data.dao.EventDAO;
+import org.lenskit.data.ratings.Rating;
+import org.lenskit.util.io.ObjectStream;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Warmup;
@@ -20,7 +20,7 @@ public class ReadRatingCSV {
     public double slurpRatings(EventDAO events) {
         double sum = 0;
         int n = 0;
-        try (Cursor<Rating> ratings = events.streamEvents(Rating.class)) {
+        try (ObjectStream<Rating> ratings = events.streamEvents(Rating.class)) {
             for (Rating r: ratings) {
                 sum += r.getValue();
                 n += 1;

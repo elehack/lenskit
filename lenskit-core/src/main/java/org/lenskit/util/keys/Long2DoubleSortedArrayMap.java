@@ -24,13 +24,18 @@ import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.Swapper;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
+import it.unimi.dsi.fastutil.doubles.DoubleLists;
 import it.unimi.dsi.fastutil.ints.AbstractIntComparator;
 import it.unimi.dsi.fastutil.ints.IntBidirectionalIterator;
 import it.unimi.dsi.fastutil.ints.IntIterators;
 import it.unimi.dsi.fastutil.longs.*;
 import it.unimi.dsi.fastutil.objects.*;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.lenskit.util.collections.LongUtils;
+import org.lenskit.util.math.UnmodifiableArrayVector;
 
+import javax.annotation.Nonnull;
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import javax.annotation.concurrent.Immutable;
 import java.util.Comparator;
 import java.util.Map;
@@ -42,11 +47,14 @@ import static it.unimi.dsi.fastutil.Arrays.quickSort;
  * An immutable long-to-double map backed by a sorted key array.
  */
 @Immutable
-public class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMap {
+public final class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMap {
     private static final long serialVersionUID = 1L;
 
     private final SortedKeyIndex keys;
     private final double[] values;
+    private transient LongList keyList;
+    private transient DoubleList valueList;
+    private transient ArrayRealVector valueVector;
 
     Long2DoubleSortedArrayMap(SortedKeyIndex ks, double[] vs) {
         Preconditions.checkArgument(vs.length >= ks.getUpperBound(),
@@ -136,9 +144,54 @@ public class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMap {
         return new EntrySet();
     }
 
+    @Nonnull
     @Override
     public LongSortedSet keySet() {
         return keys.keySet();
+    }
+
+    @Nonnull
+    public LongList keyList() {
+        if (keyList == null) {
+            keyList = keys.getKeyList();
+        }
+        return keyList;
+    }
+
+    @Nonnull
+    @Override
+    public DoubleList values() {
+        if (valueList == null) {
+            valueList = DoubleLists.unmodifiable(DoubleArrayList.wrap(values));
+        }
+        return valueList;
+    }
+
+    /**
+     * Get the key index backing this array map.
+     * @return The key inded backing the map.
+     */
+    public SortedKeyIndex keyIndex() {
+        return keys;
+    }
+
+    /**
+     * Get the values of this map as a vector.
+     * @return A real vector view of the values of the map. The vector cannot be modified.
+     */
+    public ArrayRealVector valueVector() {
+        if (valueVector == null) {
+            valueVector = new UnmodifiableArrayVector(values);
+        }
+        return valueVector;
+    }
+
+    public long getKeyByIndex(int i) {
+        return keys.getKey(i);
+    }
+
+    public double getValueByIndex(int i) {
+        return values[i];
     }
 
     @Override
