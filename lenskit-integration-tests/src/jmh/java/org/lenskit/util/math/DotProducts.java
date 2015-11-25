@@ -1,6 +1,5 @@
 package org.lenskit.util.math;
 
-import it.unimi.dsi.fastutil.doubles.DoubleLinkedOpenCustomHashSet;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.longs.*;
 import net.java.quickcheck.Generator;
@@ -23,8 +22,18 @@ public class DotProducts {
     final static Generator<Double> values = PrimitiveGenerators.doubles(1, 5);
     private final static int VECTORS_PER_INVOCATION = 1000;
 
+    public static class Counted {
+        int counter = 0;
+
+        int nextIndex() {
+            int i = counter;
+            counter = (counter + 1) % VECTORS_PER_INVOCATION;
+            return i;
+        }
+    }
+
     @State(Scope.Thread)
-    public static class HashMaps {
+    public static class HashMaps extends Counted {
         Long2DoubleMap[] maps;
 
         @Setup(Level.Iteration)
@@ -42,7 +51,7 @@ public class DotProducts {
     }
 
     @State(Scope.Thread)
-    public static class ArrayMaps {
+    public static class ArrayMaps extends Counted {
         Long2DoubleMap[] maps;
 
         @Setup(Level.Iteration)
@@ -65,7 +74,7 @@ public class DotProducts {
     }
 
     @State(Scope.Thread)
-    public static class SparseVectors {
+    public static class SparseVectors extends Counted {
         SparseVector[] maps;
 
         @Setup(Level.Iteration)
@@ -87,55 +96,48 @@ public class DotProducts {
     }
 
     @Benchmark
-    public void multiplyHashVectors(HashMaps maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            double dp = Vectors.dotProduct(maps.maps[i], maps.maps[i+1]);
-        }
+    public double multiplyHashVectors(HashMaps maps) {
+        int i = maps.nextIndex();
+        return Vectors.dotProduct(maps.maps[i], maps.maps[i+1]);
     }
 
     @Benchmark
-    public void multiplySortedVectors(ArrayMaps maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            double dp = Vectors.dotProduct(maps.maps[i], maps.maps[i+1]);
-        }
+    public double multiplySortedVectors(ArrayMaps maps) {
+        int i = maps.nextIndex();
+        return Vectors.dotProduct(maps.maps[i], maps.maps[i+1]);
     }
 
     @Benchmark
-    public void multiplySortedVectorsNaively(ArrayMaps maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            double dp = naiveDotProduct(maps.maps[i], maps.maps[i+1]);
-        }
+    public double multiplySortedVectorsNaively(ArrayMaps maps) {
+        int i = maps.nextIndex();
+        return naiveDotProduct(maps.maps[i], maps.maps[i+1]);
     }
 
     @Benchmark
-    public void multiplySortedVectorsSuperfast(ArrayMaps maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            double dp = superfastDotProduct(maps.maps[i], maps.maps[i+1]);
-        }
+    public double multiplySortedVectorsSuperfast(ArrayMaps maps) {
+        int i = maps.nextIndex();
+        return superfastDotProduct(maps.maps[i], maps.maps[i+1]);
     }
 
     @Benchmark
-    public void multiplySortedVectorsSuperSuperfast(ArrayMaps maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            double dp = superSuperfastDotProduct(maps.maps[i], maps.maps[i+1]);
-        }
+    public double multiplySortedVectorsSuperSuperfast(ArrayMaps maps) {
+        int i = maps.nextIndex();
+        return superSuperfastDotProduct(maps.maps[i], maps.maps[i+1]);
     }
 
     @Benchmark
-    public void multiplySortedVectorsKV(ArrayMaps maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            Long2DoubleSortedArrayMap m1 = (Long2DoubleSortedArrayMap) maps.maps[i];
-            Long2DoubleSortedArrayMap m2 = (Long2DoubleSortedArrayMap) maps.maps[i+1];
-            double dp = kvDotProduct(m1.keyIndex(), m1.valueVector(),
-                                     m2.keyIndex(), m2.valueVector());
-        }
+    public double multiplySortedVectorsKV(ArrayMaps maps) {
+        int i = maps.nextIndex();
+        Long2DoubleSortedArrayMap m1 = (Long2DoubleSortedArrayMap) maps.maps[i];
+        Long2DoubleSortedArrayMap m2 = (Long2DoubleSortedArrayMap) maps.maps[i+1];
+        return kvDotProduct(m1.keyIndex(), m1.valueVector(),
+                            m2.keyIndex(), m2.valueVector());
     }
 
     @Benchmark
-    public void multiplySparseVectors(SparseVectors maps) {
-        for (int i = 0; i < VECTORS_PER_INVOCATION; i++) {
-            double dp = maps.maps[i].dot(maps.maps[i+1]);
-        }
+    public double multiplySparseVectors(SparseVectors maps) {
+        int i = maps.nextIndex();
+        return maps.maps[i].dot(maps.maps[i+1]);
     }
 
     static double naiveDotProduct(Long2DoubleMap v1, Long2DoubleMap v2) {
