@@ -170,7 +170,7 @@ public class Long2DoubleSortedArrayMapTest {
     }
 
     @Test
-    public void testRandomMaps() {
+    public void testRandomSubmaps() {
         for (Map<Long,Double> map: someMaps(longs(), doubles())) {
             Long2DoubleSortedArrayMap vec = Long2DoubleSortedArrayMap.create(map);
             Set<Long> picked = sets(map.keySet()).next();

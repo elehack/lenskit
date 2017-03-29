@@ -46,9 +46,9 @@ import static it.unimi.dsi.fastutil.Arrays.quickSort;
 public final class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMap {
     private static final long serialVersionUID = 1L;
 
-
     private final SortedKeyIndex keys;
     private final double[] values;
+    private transient volatile int[] valueOrder;
 
     Long2DoubleSortedArrayMap(SortedKeyIndex ks, double[] vs) {
         Preconditions.checkArgument(vs.length >= ks.getUpperBound(),
@@ -339,6 +339,14 @@ public final class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMa
     @Override
     public int size() {
         return keys.size();
+    }
+
+    /**
+     * Get a view of this map that is sorted in decreasing order by value.
+     * @return A map that iterates over entries in decreasing order by value.
+     */
+    public Long2DoubleValueSortedArrayMap decreasingValueMap() {
+        return new Long2DoubleValueSortedArrayMap(keys, values);
     }
 
     private Entry entry(int idx) {
