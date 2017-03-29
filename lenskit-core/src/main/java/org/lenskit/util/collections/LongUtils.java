@@ -50,9 +50,9 @@ public final class LongUtils {
      * @param map The source map.
      * @return An immutable map with the same data as {@code map}.
      */
-    public static Long2DoubleSortedMap frozenMap(Map<Long,Double> map) {
+    public static Long2DoubleSortedArrayMap frozenMap(Map<Long,Double> map) {
         if (map instanceof Long2DoubleSortedArrayMap) {
-            return (Long2DoubleSortedMap) map;
+            return (Long2DoubleSortedArrayMap) map;
         } else {
             return new Long2DoubleSortedArrayMap(map);
         }

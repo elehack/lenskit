@@ -48,7 +48,7 @@ public final class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMa
 
     private final SortedKeyIndex keys;
     private final double[] values;
-    private transient volatile int[] valueOrder;
+    private transient volatile Long2DoubleValueSortedArrayMap valueSortedMap;
 
     Long2DoubleSortedArrayMap(SortedKeyIndex ks, double[] vs) {
         Preconditions.checkArgument(vs.length >= ks.getUpperBound(),
@@ -346,7 +346,11 @@ public final class Long2DoubleSortedArrayMap extends AbstractLong2DoubleSortedMa
      * @return A map that iterates over entries in decreasing order by value.
      */
     public Long2DoubleValueSortedArrayMap decreasingValueMap() {
-        return new Long2DoubleValueSortedArrayMap(keys, values);
+        Long2DoubleValueSortedArrayMap m = valueSortedMap;
+        if (m == null) {
+            valueSortedMap = m = new Long2DoubleValueSortedArrayMap(keys, values);
+        }
+        return m;
     }
 
     private Entry entry(int idx) {
