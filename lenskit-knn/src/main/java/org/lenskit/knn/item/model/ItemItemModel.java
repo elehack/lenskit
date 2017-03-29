@@ -52,8 +52,7 @@ public interface ItemItemModel {
      *
      * @param item The item to get the neighborhood for.
      * @return The row of the similarity matrix. If the item is unknown, an empty
-     *         vector is returned. Iterating over this map will return entries in
-     *         decreasing order of value, as if it were a {@link it.unimi.dsi.fastutil.longs.Long2DoubleLinkedOpenHashMap}.
+     *         vector is returned.
      */
     @Nonnull
     Long2DoubleMap getNeighbors(long item);

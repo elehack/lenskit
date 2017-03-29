@@ -25,7 +25,9 @@ import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleMaps;
 import it.unimi.dsi.fastutil.longs.LongSortedSet;
 import org.grouplens.grapht.annotation.DefaultProvider;
+import org.lenskit.api.ResultList;
 import org.lenskit.inject.Shareable;
+import org.lenskit.results.Results;
 import org.lenskit.util.collections.LongUtils;
 import org.lenskit.util.keys.SortedKeyIndex;
 
@@ -78,8 +80,7 @@ public class SimilarityMatrixModel implements Serializable, ItemItemModel {
         assert n == nbrs.size();
         ImmutableList.Builder<Long2DoubleMap> neighbors = ImmutableList.builder();
         for (int i = 0; i < n; i++) {
-            neighbors.add(LongUtils.frozenMap(nbrs.get(itemDomain.getKey(i)))
-                                   .decreasingValueMap());
+            neighbors.add(LongUtils.frozenMap(nbrs.get(itemDomain.getKey(i))));
         }
         neighborhoods = neighbors.build();
     }

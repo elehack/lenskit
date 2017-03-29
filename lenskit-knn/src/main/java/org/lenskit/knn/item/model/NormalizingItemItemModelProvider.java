@@ -114,7 +114,7 @@ public class NormalizingItemItemModelProvider implements Provider<ItemItemModel>
             row = rowNormalizer.makeTransformation(rowItem, row).apply(row);
             row = truncator.truncate(row);
 
-            matrix.add(LongUtils.frozenMap(row).decreasingValueMap());
+            matrix.add(LongUtils.frozenMap(row));
         }
 
         timer.stop();
