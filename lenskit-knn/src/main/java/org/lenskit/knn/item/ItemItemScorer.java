@@ -33,9 +33,8 @@ import org.lenskit.knn.item.model.ItemItemModel;
 import org.lenskit.results.Results;
 import org.lenskit.transform.normalize.UserVectorNormalizer;
 import org.lenskit.util.InvertibleFunction;
-import org.lenskit.util.collections.Long2DoubleAccumulator;
-import org.lenskit.util.collections.TopNLong2DoubleAccumulator;
 import org.lenskit.util.keys.Long2DoubleSortedArrayMap;
+import org.lenskit.util.math.Vectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,21 +141,19 @@ public class ItemItemScorer extends AbstractItemScorer {
 
     protected void scoreItem(Long2DoubleMap userData, long item, ItemItemScoreAccumulator accum) {
         // find the usable neighbors
-        Long2DoubleSortedArrayMap allNeighbors = Long2DoubleSortedArrayMap.create(model.getNeighbors(item));
-        Long2DoubleMap neighborhood = allNeighbors.subMap(userData.keySet());
+        Long2DoubleMap allNeighbors = model.getNeighbors(item);
+        Long2DoubleMap neighborhood = new Long2DoubleOpenHashMap();
 
-        if (neighborhoodSize > 0) {
-            if (logger.isTraceEnabled()) {
-                logger.trace("truncating {} neighbors to {}", neighborhood.size(), neighborhoodSize);
+        for (Long2DoubleMap.Entry e: Vectors.fastEntries(allNeighbors)) {
+            if (userData.containsKey(e.getLongKey())) {
+                neighborhood.put(e.getLongKey(), e.getDoubleValue());
+                if (neighborhoodSize > 0 && neighborhood.size() >= neighborhoodSize) {
+                    break;
+                }
             }
-            Long2DoubleAccumulator acc = new TopNLong2DoubleAccumulator(neighborhoodSize);
-            for (Long2DoubleMap.Entry e: neighborhood.long2DoubleEntrySet()) {
-                acc.put(e.getLongKey(), e.getDoubleValue());
-            }
-            neighborhood = acc.finishMap();
         }
-
         assert neighborhoodSize <= 0 || neighborhood.size() <= neighborhoodSize;
+
         if (neighborhood.size() < minNeighbors) {
             return;
         }
