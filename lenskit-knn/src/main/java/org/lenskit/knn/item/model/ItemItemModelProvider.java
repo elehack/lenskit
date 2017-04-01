@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Build an item-item CF model from rating data.
@@ -93,15 +94,9 @@ public class ItemItemModelProvider implements Provider<ItemItemModel> {
                                                 .setLabel("item-item model build")
                                                 .setWindow(50)
                                                 .start();
-        int ndone = 0;
-        int npairs = 0;
-        OUTER: while (outer.hasNext()) {
-            ndone += 1;
-            final long itemId1 = outer.nextLong();
-            if (logger.isTraceEnabled()) {
-                logger.trace("computing similarities for item {} ({} of {})",
-                             itemId1, ndone, nitems);
-            }
+        final AtomicInteger npairs = new AtomicInteger(0);
+
+        allItems.parallelStream().forEach((itemId1) -> {
             Long2DoubleSortedMap vec1 = buildContext.itemVector(itemId1);
             if (vec1.size() < minCommonUsers) {
                 // if it doesn't have enough users, it can't have enough common users
@@ -109,39 +104,45 @@ public class ItemItemModelProvider implements Provider<ItemItemModel> {
                     logger.trace("item {} has {} (< {}) users, skipping", itemId1, vec1.size(), minCommonUsers);
                 }
                 progress.advance();
-                continue OUTER;
+                return;
             }
 
             LongIterator itemIter = neighborStrategy.neighborIterator(buildContext, itemId1,
                                                                       itemSimilarity.isSymmetric());
 
             Long2DoubleAccumulator row = rows.get(itemId1);
-            INNER: while (itemIter.hasNext()) {
+            while (itemIter.hasNext()) {
                 long itemId2 = itemIter.nextLong();
                 if (itemId1 != itemId2) {
                     Long2DoubleSortedMap vec2 = buildContext.itemVector(itemId2);
                     if (!LongUtils.hasNCommonItems(vec1.keySet(), vec2.keySet(), minCommonUsers)) {
                         // items have insufficient users in common, skip them
-                        continue INNER;
+                        continue;
                     }
 
                     double sim = itemSimilarity.similarity(itemId1, vec1, itemId2, vec2);
                     if (threshold.retain(sim)) {
-                        row.put(itemId2, sim);
-                        npairs += 1;
+                        synchronized(row) {
+                            row.put(itemId2, sim);
+                        }
+                        npairs.incrementAndGet();
                         if (itemSimilarity.isSymmetric()) {
-                            rows.get(itemId2).put(itemId1, sim);
-                            npairs += 1;
+                            Long2DoubleAccumulator r2 = rows.get(itemId2);
+                            synchronized (r2) {
+                                r2.put(itemId1, sim);
+                            }
+                            npairs.incrementAndGet();
                         }
                     }
                 }
             }
 
             progress.advance();
-        }
+        });
+
         progress.finish();
         logger.info("built model of {} similarities for {} items in {}",
-                    npairs, ndone, progress.elapsedTime());
+                    npairs, allItems.size(), progress.elapsedTime());
 
         return new SimilarityMatrixModel(finishRows(rows));
     }
