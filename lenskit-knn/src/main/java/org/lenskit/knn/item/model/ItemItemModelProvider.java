@@ -32,13 +32,13 @@ import org.lenskit.util.collections.Long2DoubleAccumulator;
 import org.lenskit.util.collections.LongUtils;
 import org.lenskit.util.collections.TopNLong2DoubleAccumulator;
 import org.lenskit.util.collections.UnlimitedLong2DoubleAccumulator;
+import org.lenskit.util.math.Vectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.inject.Inject;
 import javax.inject.Provider;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Build an item-item CF model from rating data.
@@ -94,7 +94,6 @@ public class ItemItemModelProvider implements Provider<ItemItemModel> {
                                                 .setLabel("item-item model build")
                                                 .setWindow(50)
                                                 .start();
-        final AtomicInteger npairs = new AtomicInteger(0);
 
         allItems.parallelStream().forEach((itemId1) -> {
             Long2DoubleSortedMap vec1 = buildContext.itemVector(itemId1);
@@ -110,7 +109,7 @@ public class ItemItemModelProvider implements Provider<ItemItemModel> {
             LongIterator itemIter = neighborStrategy.neighborIterator(buildContext, itemId1,
                                                                       itemSimilarity.isSymmetric());
 
-            Long2DoubleAccumulator row = rows.get(itemId1);
+            Long2DoubleOpenHashMap tmpRow = new Long2DoubleOpenHashMap();
             while (itemIter.hasNext()) {
                 long itemId2 = itemIter.nextLong();
                 if (itemId1 != itemId2) {
@@ -122,17 +121,23 @@ public class ItemItemModelProvider implements Provider<ItemItemModel> {
 
                     double sim = itemSimilarity.similarity(itemId1, vec1, itemId2, vec2);
                     if (threshold.retain(sim)) {
-                        synchronized(row) {
-                            row.put(itemId2, sim);
-                        }
-                        npairs.incrementAndGet();
-                        if (itemSimilarity.isSymmetric()) {
-                            Long2DoubleAccumulator r2 = rows.get(itemId2);
-                            synchronized (r2) {
-                                r2.put(itemId1, sim);
-                            }
-                            npairs.incrementAndGet();
-                        }
+                        tmpRow.put(itemId2, sim);
+                    }
+                }
+            }
+
+            Long2DoubleAccumulator row = rows.get(itemId1);
+            synchronized(row) {
+                for (Long2DoubleMap.Entry e: Vectors.fastEntries(tmpRow)) {
+                    row.put(e.getLongKey(), e.getDoubleValue());
+                }
+            }
+            if (itemSimilarity.isSymmetric()) {
+                for (Long2DoubleMap.Entry e: Vectors.fastEntries(tmpRow)) {
+                    long iid2 = e.getLongKey();
+                    Long2DoubleAccumulator r2 = rows.get(iid2);
+                    synchronized (r2) {
+                        r2.put(itemId1, e.getDoubleValue());
                     }
                 }
             }
@@ -141,8 +146,8 @@ public class ItemItemModelProvider implements Provider<ItemItemModel> {
         });
 
         progress.finish();
-        logger.info("built model of {} similarities for {} items in {}",
-                    npairs, allItems.size(), progress.elapsedTime());
+        logger.info("built model for {} items in {}",
+                    allItems.size(), progress.elapsedTime());
 
         return new SimilarityMatrixModel(finishRows(rows));
     }
