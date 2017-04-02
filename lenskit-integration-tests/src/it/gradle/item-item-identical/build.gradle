@@ -36,6 +36,8 @@ task trainTest(type: TrainTest) {
     cacheDirectory 'cache'
     outputFile 'results.csv'
     userOutputFile 'users.csv'
+    logFile 'evaluate.log'
+    logFileLevel 'TRACE'
     algorithm 'algorithms.groovy'
     predict {
         outputFile 'predictions.csv'

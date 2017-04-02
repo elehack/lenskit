@@ -44,7 +44,6 @@ def common = {
     within (UserVectorNormalizer) {
         bind BiasModel to ItemBiasModel
     }
-    bind (BaselineScorer, ItemScorer) to ItemMeanRatingItemScorer
     at (RatingPredictor) {
         // turn off baselines - make sure everything produces the same recs
         bind (BaselineScorer, ItemScorer) to null
@@ -53,6 +52,10 @@ def common = {
 
 algorithm("Standard") {
     include common
+}
+algorithm("Userwise") {
+    include common
+    bind ItemItemModel toProvider UserwiseCosineItemItemModelProvider
 }
 algorithm("Normalizing") {
     include common
