@@ -53,6 +53,16 @@ public interface DataAccessObject {
     LongSet getEntityIds(EntityType type);
 
     /**
+     * Get the number of entities of a particular type.  If the DAO is backed by live data,
+     * entities could be added or removed after this method is called, so use it carefully.
+     * It's fine for things like progress estimates.
+     *
+     * @param type The entity type.
+     * @return The number of entities of type `type`.
+     */
+    int getEntityCount(EntityType type);
+
+    /**
      * Look up an entity by ID.
      * @param type The entity type.
      * @param id The entity ID.

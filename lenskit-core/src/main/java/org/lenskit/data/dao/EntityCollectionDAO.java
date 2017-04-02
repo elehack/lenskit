@@ -91,6 +91,11 @@ public class EntityCollectionDAO extends AbstractDataAccessObject implements Des
         }
     }
 
+    @Override
+    public int getEntityCount(EntityType type) {
+        return getEntityIds(type).size();
+    }
+
     @Nullable
     @Override
     public Entity lookupEntity(EntityType type, long id) {
