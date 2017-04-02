@@ -23,12 +23,15 @@ package org.lenskit.knn.item.model;
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
 import org.grouplens.lenskit.transform.threshold.Threshold;
+import org.lenskit.data.dao.DataAccessObject;
+import org.lenskit.data.entities.CommonTypes;
 import org.lenskit.data.ratings.RatingVectorPDAO;
 import org.lenskit.inject.Transient;
 import org.lenskit.knn.item.ItemSimilarityThreshold;
 import org.lenskit.knn.item.ModelSize;
 import org.lenskit.transform.normalize.UserVectorNormalizer;
 import org.lenskit.util.IdBox;
+import org.lenskit.util.ProgressLogger;
 import org.lenskit.util.collections.LLDMatrix;
 import org.lenskit.util.collections.Long2DoubleAccumulator;
 import org.lenskit.util.collections.TopNLong2DoubleAccumulator;
@@ -48,17 +51,21 @@ import java.util.stream.Collectors;
  */
 public class UserwiseCosineItemItemModelProvider implements Provider<ItemItemModel> {
     private static final Logger logger = LoggerFactory.getLogger(UserwiseCosineItemItemModelProvider.class);
-    private final RatingVectorPDAO dao;
+
+    private final DataAccessObject dao;
+    private final RatingVectorPDAO ratingDAO;
     private final UserVectorNormalizer normalizer;
     private final Threshold threshold;
     private final int modelSize;
 
     @Inject
-    public UserwiseCosineItemItemModelProvider(@Transient RatingVectorPDAO rvd,
+    public UserwiseCosineItemItemModelProvider(@Transient DataAccessObject dao,
+                                               @Transient RatingVectorPDAO rvd,
                                                @Transient UserVectorNormalizer norm,
                                                @ItemSimilarityThreshold Threshold thresh,
                                                @ModelSize int msize) {
-        dao = rvd;
+        this.dao = dao;
+        ratingDAO = rvd;
         normalizer = norm;
         threshold = thresh;
         modelSize = msize;
@@ -66,12 +73,19 @@ public class UserwiseCosineItemItemModelProvider implements Provider<ItemItemMod
 
     @Override
     public SimilarityMatrixModel get() {
-        logger.info("building item-item model user-by-user");
+        int nusers = dao.getEntityCount(CommonTypes.USER);
+        logger.info("building item-item model user-by-user ({} users)", nusers);
 
         LLDMatrix dotProducts = LLDMatrix.newMutableMatrix();
         Long2DoubleOpenHashMap sumsOfSquares = new Long2DoubleOpenHashMap();
 
-        try (ObjectStream<IdBox<Long2DoubleMap>> users = dao.streamUsers()) {
+        try (ObjectStream<IdBox<Long2DoubleMap>> users = ratingDAO.streamUsers()) {
+            ProgressLogger progress = ProgressLogger.create(logger)
+                                                    .setCount(nusers)
+                                                    .setLabel("item-item model users")
+                                                    .setWindow(100)
+                                                    .start();
+
             for (IdBox<Long2DoubleMap> user: users) {
                 logger.trace("processing user {} with {} items",
                              user.getId(), user.getValue().size());
@@ -89,7 +103,10 @@ public class UserwiseCosineItemItemModelProvider implements Provider<ItemItemMod
                         }
                     }
                 }
+                progress.advance();
             }
+
+            progress.finish();
         }
 
         Map<Long, Long2DoubleMap> result;
