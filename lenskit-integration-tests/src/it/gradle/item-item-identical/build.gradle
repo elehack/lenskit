@@ -8,11 +8,13 @@ buildscript {
     dependencies {
         classpath "org.lenskit:lenskit-gradle:$project.lenskitVersion"
         classpath 'org.hamcrest:hamcrest-library:1.3'
+        classpath 'org.yaml:snakeyaml:1.17'
     }
 }
 
 import org.lenskit.gradle.*
 import static org.hamcrest.MatcherAssert.assertThat
+import org.yaml.snakeyaml.*
 
 apply plugin: 'java'
 apply plugin: 'lenskit'
@@ -28,10 +30,19 @@ task crossfold(type: Crossfold) {
     partitionCount 5
     userPartitionMethod holdout(5)
     includeTimestamps false
+
+    doLast {
+        logger.info("marking crossfolds as to-be-isolated")
+        def parser = new Yaml()
+        def cfFile = file("$outputDirectory/datasets.yaml")
+        def cfSpec = parser.load(cfFile.text)
+        cfSpec.isolate = true
+        cfFile.text = parser.dump(cfSpec)
+    }
 }
 
 task trainTest(type: TrainTest) {
-    maxMemory '256m'
+    maxMemory '512m'
     dataSet crossfold
     cacheDirectory 'cache'
     outputFile 'results.csv'
