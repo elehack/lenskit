@@ -21,6 +21,8 @@
 package org.lenskit.util.collections;
 
 import com.google.common.collect.Iterators;
+import it.unimi.dsi.fastutil.ints.Int2DoubleMap;
+import it.unimi.dsi.fastutil.ints.Int2DoubleOpenHashMap;
 import it.unimi.dsi.fastutil.longs.*;
 import org.lenskit.util.IdBox;
 
@@ -38,7 +40,7 @@ import java.util.Iterator;
 public class LLDMatrix implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final Long2ObjectMap<Long2DoubleOpenHashMap> rows;
+    private final Long2ObjectMap<Row> rows;
 
     private LLDMatrix() {
         rows = new Long2ObjectOpenHashMap<>();
@@ -70,9 +72,9 @@ public class LLDMatrix implements Serializable {
      * @return The old value, if present (or 0).
      */
     public double put(long row, long col, double val) {
-        Long2DoubleOpenHashMap rv = rows.get(row);
+        Row rv = rows.get(row);
         if (rv == null) {
-            rv = new Long2DoubleOpenHashMap();
+            rv = new CompactRow(row);
             rows.put(row, rv);
         }
         return rv.put(col, val);
@@ -86,9 +88,9 @@ public class LLDMatrix implements Serializable {
      * @return The old value, if present (or 0).
      */
     public double addTo(long row, long col, double incr) {
-        Long2DoubleOpenHashMap rv = rows.get(row);
+        Row rv = rows.get(row);
         if (rv == null) {
-            rv = new Long2DoubleOpenHashMap();
+            rv = new CompactRow(row);
             rows.put(row, rv);
         }
         return rv.addTo(col, incr);
@@ -113,16 +115,16 @@ public class LLDMatrix implements Serializable {
      */
     @Nonnull
     public Long2DoubleMap getRow(long row, boolean insert) {
-        Long2DoubleMap r = rows.get(row);
+        Row r = rows.get(row);
         if (r == null) {
             if (insert) {
-                r = new Long2DoubleOpenHashMap();
-                rows.put(row, (Long2DoubleOpenHashMap) r);
+                r = new CompactRow(row);
+                rows.put(row, r);
             } else {
-                r = Long2DoubleMaps.EMPTY_MAP;
+                return Long2DoubleMaps.EMPTY_MAP;
             }
         }
-        return r;
+        return r.asMap();
     }
 
     /**
@@ -150,7 +152,7 @@ public class LLDMatrix implements Serializable {
             @Override
             public Iterator<IdBox<Long2DoubleMap>> iterator() {
                 return Iterators.transform(rows.entrySet().iterator(),
-                                           (e) -> IdBox.create(e.getKey(), e.getValue()));
+                                           (e) -> IdBox.create(e.getKey(), e.getValue().asMap()));
             }
 
             @Override
@@ -158,5 +160,119 @@ public class LLDMatrix implements Serializable {
                 return rows.size();
             }
         };
+    }
+
+    private static abstract class Row {
+        final long key;
+
+        Row(long k) {
+            key = k;
+        }
+
+        abstract double get(long k);
+        abstract double put(long k, double v);
+        abstract double addTo(long k, double v);
+
+        abstract Long2DoubleMap asMap();
+    }
+
+    private static class FullRow extends Row {
+        final Long2DoubleOpenHashMap map;
+
+        FullRow(long k) {
+            super(k);
+            map = new Long2DoubleOpenHashMap();
+        }
+
+        FullRow(long k, int size) {
+            super(k);
+            map = new Long2DoubleOpenHashMap(size);
+        }
+
+        @Override
+        double get(long k) {
+            return map.get(k);
+        }
+
+        @Override
+        double put(long k, double v) {
+            return map.put(k, v);
+        }
+
+        @Override
+        double addTo(long k, double v) {
+            return map.addTo(k, v);
+        }
+
+        @Override
+        Long2DoubleMap asMap() {
+            return map;
+        }
+    }
+
+    private class CompactRow extends Row {
+        final Int2DoubleOpenHashMap map;
+
+        CompactRow(long k) {
+            super(k);
+            map = new Int2DoubleOpenHashMap();
+        }
+
+        @Override
+        double get(long k) {
+            Row full = rows.get(key);
+            if (full != this) {
+                return full.get(k);
+            } else if (k < Integer.MIN_VALUE || k > Integer.MAX_VALUE) {
+                return map.defaultReturnValue();
+            } else {
+                return map.get((int) k);
+            }
+        }
+
+        @Override
+        double put(long k, double v) {
+            Row full = rows.get(key);
+            if (full != this) {
+                return full.put(k, v);
+            } else if (k < Integer.MIN_VALUE || k > Integer.MAX_VALUE) {
+                // upgrade the row
+                full = upgrade();
+                rows.put(key, full);
+                return full.put(k, v);
+            } else {
+                return map.put((int) k, v);
+            }
+        }
+
+        @Override
+        double addTo(long k, double v) {
+            Row full = rows.get(key);
+            if (full != this) {
+                return full.addTo(k, v);
+            } else if (k < Integer.MIN_VALUE || k > Integer.MAX_VALUE) {
+                // upgrade the row
+                full = upgrade();
+                rows.put(key, full);
+                return full.addTo(k, v);
+            } else {
+                return map.addTo((int) k, v);
+            }
+        }
+
+        @Override
+        Long2DoubleMap asMap() {
+            return new IntLongMapKeyAdapter(map);
+        }
+
+        FullRow upgrade() {
+            FullRow row = new FullRow(key, map.size());
+            Iterator<Int2DoubleMap.Entry> iter = map.int2DoubleEntrySet().fastIterator();
+            while (iter.hasNext()) {
+                Int2DoubleMap.Entry e = iter.next();
+                row.put(e.getIntKey(), e.getDoubleValue());
+            }
+            return row;
+        }
     }
 }
