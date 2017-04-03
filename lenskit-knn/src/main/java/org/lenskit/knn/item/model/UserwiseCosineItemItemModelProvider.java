@@ -22,6 +22,7 @@ package org.lenskit.knn.item.model;
 
 import it.unimi.dsi.fastutil.longs.Long2DoubleMap;
 import it.unimi.dsi.fastutil.longs.Long2DoubleOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import org.grouplens.lenskit.transform.threshold.Threshold;
 import org.lenskit.data.dao.DataAccessObject;
 import org.lenskit.data.entities.CommonTypes;
@@ -32,10 +33,7 @@ import org.lenskit.knn.item.ModelSize;
 import org.lenskit.transform.normalize.UserVectorNormalizer;
 import org.lenskit.util.IdBox;
 import org.lenskit.util.ProgressLogger;
-import org.lenskit.util.collections.LLDMatrix;
-import org.lenskit.util.collections.Long2DoubleAccumulator;
-import org.lenskit.util.collections.TopNLong2DoubleAccumulator;
-import org.lenskit.util.collections.UnlimitedLong2DoubleAccumulator;
+import org.lenskit.util.collections.*;
 import org.lenskit.util.io.ObjectStream;
 import org.lenskit.util.math.Vectors;
 import org.slf4j.Logger;
@@ -44,7 +42,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Item-item model builder that only uses cosine similarity, but is faster on sparse matrices.
@@ -109,16 +106,18 @@ public class UserwiseCosineItemItemModelProvider implements Provider<ItemItemMod
             progress.finish();
         }
 
-        Map<Long, Long2DoubleMap> result;
-        result = dotProducts.rows()
-                            .stream()
-                            .map((box -> finishVector(box.getId(), box.getValue(), sumsOfSquares)))
-                            .collect(Collectors.toMap(IdBox::getId, IdBox::getValue));
-        logger.info("computed similarities for {} items", result.size());
+        logger.info("computed similarities for {} items, collapsing", dotProducts.rows().size());
+        Map<Long, Long2DoubleMap> result = new Long2ObjectOpenHashMap<>();
+        for (long item: LongUtils.frozenSet(dotProducts.rowIds())) {
+            Long2DoubleMap row = dotProducts.getRow(item);
+            result.put(item, finishVector(item, row, sumsOfSquares));
+            dotProducts.clearRow(item);
+        }
+
         return new SimilarityMatrixModel(result);
     }
 
-    private IdBox<Long2DoubleMap> finishVector(long id, Long2DoubleMap vec, Long2DoubleOpenHashMap sumsOfSquares) {
+    private Long2DoubleMap finishVector(long id, Long2DoubleMap vec, Long2DoubleMap sumsOfSquares) {
         Long2DoubleAccumulator accum;
         if (modelSize > 0) {
             accum = new TopNLong2DoubleAccumulator(modelSize);
@@ -135,6 +134,6 @@ public class UserwiseCosineItemItemModelProvider implements Provider<ItemItemMod
                 accum.put(j, sim);
             }
         }
-        return IdBox.create(id, accum.finishMap());
+        return LongUtils.frozenMap(accum.finishMap());
     }
 }

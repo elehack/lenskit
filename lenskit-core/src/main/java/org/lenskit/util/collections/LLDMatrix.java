@@ -126,6 +126,22 @@ public class LLDMatrix implements Serializable {
     }
 
     /**
+     * Clear the a particular row.
+     * @param row The row to clear.
+     */
+    public void clearRow(long row) {
+        rows.remove(row);
+    }
+
+    /**
+     * Get the set of row IDs that have been used.
+     * @return The set of row IDs.
+     */
+    public LongSet rowIds() {
+        return rows.keySet();
+    }
+
+    /**
      * Get the collection of rows as an iterable collection.
      * @return The collection of rows.
      */
