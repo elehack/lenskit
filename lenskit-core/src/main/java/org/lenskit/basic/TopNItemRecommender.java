@@ -82,6 +82,8 @@ public class TopNItemRecommender extends AbstractItemRecommender {
                      n, user, candidates.size());
 
         Map<Long, Double> scores = scorer.score(user, candidates);
+        logger.debug("Received scores for {} items for user {}", scores.size(), user);
+
         Long2DoubleAccumulator accum;
         if (n >= 0) {
             accum = new TopNLong2DoubleAccumulator(n);
@@ -111,6 +113,8 @@ public class TopNItemRecommender extends AbstractItemRecommender {
                      n, user, candidates.size());
 
         ResultMap scores = scorer.scoreWithDetails(user, candidates);
+        logger.debug("Received scores for {} items for user {}", scores.size(), user);
+
         return getTopNResults(n, scores);
     }
 

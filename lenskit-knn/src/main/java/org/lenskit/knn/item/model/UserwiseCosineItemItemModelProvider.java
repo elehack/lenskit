@@ -113,7 +113,7 @@ public class UserwiseCosineItemItemModelProvider implements Provider<ItemItemMod
             result.put(item, finishVector(item, row, sumsOfSquares));
             dotProducts.clearRow(item);
         }
-
+        logger.info("finished building model");
         return new SimilarityMatrixModel(result);
     }
 
