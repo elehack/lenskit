@@ -1,23 +1,3 @@
-/*
- * LensKit, an open source recommender systems toolkit.
- * Copyright 2010-2016 LensKit Contributors.  See CONTRIBUTORS.md.
- * Work on LensKit has been funded by the National Science Foundation under
- * grants IIS 05-34939, 08-08692, 08-12148, and 10-17697.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 51
- * Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
- */
 package org.lenskit.util;
 
 import org.joda.convert.StringConvert;
@@ -30,11 +10,20 @@ import static org.junit.Assert.assertThat;
  * Created by michaelekstrand on 4/13/2017.
  */
 public class TextTest {
+    @Test
+    public void testUTF8ByteCount() {
+        assertThat(Text.utf8ByteCount((byte) 0), equalTo(1));
+        // assertThat(Text.utf8ByteCount((byte) 0x80), equalTo(2));
+        assertThat(Text.utf8ByteCount((byte) 0xC0), equalTo(2));
+        assertThat(Text.utf8ByteCount((byte) 0xE0), equalTo(3));
+        assertThat(Text.utf8ByteCount((byte) 0xF0), equalTo(4));
+    }
 
     @Test
     public void testEmptyString() {
         Text text = Text.fromString("");
         assertThat(text.toString(), equalTo(""));
+        assertThat(text.length(), equalTo(0));
         assertThat(text.size(), equalTo(0));
     }
 
@@ -43,6 +32,7 @@ public class TextTest {
         Text text = Text.fromString("wumpus");
         assertThat(text.toString(), equalTo("wumpus"));
         assertThat(text.size(), equalTo(6));
+        assertThat(text.length(), equalTo(6));
     }
 
     @Test
@@ -50,6 +40,7 @@ public class TextTest {
         Text text = Text.fromString("wümpus");
         assertThat(text.toString(), equalTo("wümpus"));
         assertThat(text.size(), equalTo(7));
+        assertThat(text.length(), equalTo(6));
     }
 
     @Test
@@ -57,6 +48,41 @@ public class TextTest {
         Text text = Text.fromString("wu\uD835\uDCC2pus");
         assertThat(text.toString(), equalTo("wu\uD835\uDCC2pus"));
         assertThat(text.size(), equalTo(9));
+        assertThat(text.length(), equalTo(7));
+    }
+
+    @Test
+    public void testBasicStringCharAt() {
+        Text text = Text.fromString("wumpus");
+        assertThat(text.charAt(0), equalTo('w'));
+        assertThat(text.charAt(1), equalTo('u'));
+        assertThat(text.charAt(2), equalTo('m'));
+        assertThat(text.charAt(3), equalTo('p'));
+        assertThat(text.charAt(4), equalTo('u'));
+        assertThat(text.charAt(5), equalTo('s'));
+    }
+
+    @Test
+    public void testAccentCharAt() {
+        Text text = Text.fromString("wümpus");
+        assertThat(text.charAt(0), equalTo('w'));
+        assertThat(text.charAt(1), equalTo('ü'));
+        assertThat(text.charAt(2), equalTo('m'));
+        assertThat(text.charAt(3), equalTo('p'));
+        assertThat(text.charAt(4), equalTo('u'));
+        assertThat(text.charAt(5), equalTo('s'));
+    }
+
+    @Test
+    public void testNonBMPCharAt() {
+        Text text = Text.fromString("wu\uD835\uDCC2pus");
+        assertThat(text.charAt(0), equalTo('w'));
+        assertThat(text.charAt(1), equalTo('u'));
+        assertThat(text.charAt(2), equalTo('\uD835'));
+        assertThat(text.charAt(3), equalTo('\uDCC2'));
+        assertThat(text.charAt(4), equalTo('p'));
+        assertThat(text.charAt(5), equalTo('u'));
+        assertThat(text.charAt(6), equalTo('s'));
     }
 
     @Test
