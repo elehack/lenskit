@@ -112,6 +112,33 @@ final class PackedRatingData {
         return itemIndex;
     }
 
+    /**
+     * Get the user index for a rating index.
+     * @param index The rating index.
+     * @return The user index from that rating.
+     */
+    int getEntryUserIndex(int index) {
+        return users[chunk(index)][element(index)];
+    }
+
+    /**
+     * Get the item index for a rating index.
+     * @param index The rating index.
+     * @return The item index from that rating.
+     */
+    int getEntryItemIndex(int index) {
+        return items[chunk(index)][element(index)];
+    }
+
+    /**
+     * Get the value for a rating entry.
+     * @param index The rating index.
+     * @return The rating value.
+     */
+    double getEntryValue(int index) {
+        return values[chunk(index)][element(index)];
+    }
+
     final class IndirectEntry extends RatingMatrixEntry {
         private int index;
 
@@ -136,17 +163,17 @@ final class PackedRatingData {
 
         @Override
         public long getUserId() {
-            return userIndex.getKey(getUserIndex());
+            return PackedRatingData.this.getUserIndex().getKey(getUserIndex());
         }
 
         @Override
         public long getItemId() {
-            return itemIndex.getKey(getItemIndex());
+            return PackedRatingData.this.getItemIndex().getKey(getItemIndex());
         }
 
         @Override
         public double getValue() {
-            return values[chunk(index)][element(index)];
+            return getEntryValue(index);
         }
 
         @Override
@@ -154,18 +181,18 @@ final class PackedRatingData {
             return index;
         }
 
-        public void setIndex(int idx) {
+        void setIndex(int idx) {
             index = idx;
         }
 
         @Override
         public int getUserIndex() {
-            return users[chunk(index)][element(index)];
+            return getEntryUserIndex(index);
         }
 
         @Override
         public int getItemIndex() {
-            return items[chunk(index)][element(index)];
+            return getEntryItemIndex(index);
         }
     }
 }
